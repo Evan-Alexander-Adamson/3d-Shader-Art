@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Amazing Three.js Scene</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+
+        /* Dropdown Styles */
+        #menuDropdown {  /* Shader selector */
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .dropdown-button {
+            background-color: rgba(30, 30, 30, 0.5);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            color: #FFFFFF;
+            padding: 14px 24px;
+            font-size: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 220px;
+            text-align: center;
+            position: relative;
+        }
+
+        .dropdown-button::after {
+            content: '▼';
+            margin-left: 10px;
+            font-size: 12px;
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            transition: transform 0.3s;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: rgba(30, 30, 30, 0.5);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            min-width: 220px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            margin-top: 8px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .dropdown-content a {
+            color: #FFFFFF;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .dropdown-content a:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-content a:hover {
+            background-color: rgba(51, 51, 51, 0.7);
+        }
+
+        .dropdown.active .dropdown-content {
+            display: block;
+            opacity: 1;
+        }
+
+        .dropdown.active .dropdown-button::after {
+            transform: translateY(-50%) rotate(180deg);
+        }
+
+        /* Orbit Dropdown Styles */
+        #orbitDropdown {
+            position: fixed;
+            bottom: 20px;          /* Position at bottom */
+            right: 20px;
+            z-index: 1000;
+        }
+
+        /* Make orbit dropdown menu open upwards */
+        #orbitDropdown .dropdown-content {
+            bottom: calc(100% + 8px);  /* Position above the button with 8px gap */
+            top: auto;                 /* Override default top positioning */
+            margin-top: 0;
+        }
+
+        /* Quote Styles */
+        .description {
+            position: fixed;
+            bottom: 50px;  /* Changed from top: 20px */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;   /* Increased for better text flow */
+            color: #FFFFFF;
+            background-color: rgba(30, 30, 30, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            z-index: 999;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- Add Navigation Dropdown -->
+    <div class="dropdown" id="menuDropdown">
+        <button class="dropdown-button" id="dropdownButton">Select Shader</button>
+        <div class="dropdown-content">
+            <a href="index.html">Home</a>
+            <a href="new_bubble.html">Neon Flow</a>
+            <a href="another_bubble.html">Fractal Zoom</a>
+            <a href="metaball_bubble.html">Lava Lamp</a>
+        </div>
+    </div>
+
+    <!-- Add Orbit Selector Dropdown -->
+    <div class="dropdown" id="orbitDropdown">
+        <button class="dropdown-button" id="orbitButton">Sun Orbit</button>
+        <div class="dropdown-content">
+            <a href="#" data-orbit="circular">Circular Orbit</a>
+            <a href="#" data-orbit="elliptical">Elliptical Orbit</a>
+            <a href="#" data-orbit="spiral">Spiral Orbit</a>
+            <a href="#" data-orbit="stop">Stop Orbit</a>
+        </div>
+    </div>
+
+    <!-- Add menu.js script -->
+    <script src="menu.js"></script>
+
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <!-- Post-Processing Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/FXAAShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+
+    <!-- Your Custom Three.js Script -->
+    <script>
+        // Initialize scene, camera, and renderer
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000); // Pure black for space
+
+        const camera = new THREE.PerspectiveCamera(
+            75, window.innerWidth / window.innerHeight, 0.1, 1000
+        );
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
+
+        // Add orbit controls
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.25;
+        controls.screenSpacePanning = false;
+
+        // Create a larger sun with stronger emission
+        const sunGeometry = new THREE.SphereGeometry(20, 64, 64);  // Increased size
+        
+        // Create noise texture for sun's surface
+        const noiseTexture = new THREE.TextureLoader().load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/disturb.jpg');
+        noiseTexture.wrapS = noiseTexture.wrapT = THREE.RepeatWrapping;
+        
+        const sunMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0xff4400,
+            emissive: 0xff2200,
+            emissiveIntensity: 4,     // Increased emission
+            metalness: 0,
+            roughness: 0.7,
+            map: noiseTexture,
+            displacementMap: noiseTexture,
+            displacementScale: 0.5,
+            bumpMap: noiseTexture,
+            bumpScale: 0.5
+        });
+
+        // Create the sun mesh
+        const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+        sun.position.set(50, 30, 50);  // Moved further out from (25, 15, 25)
+        scene.add(sun);
+
+        // Multiple corona layers for smoother glow
+        const createCorona = (size, opacity) => {
+            const geometry = new THREE.SphereGeometry(size, 64, 64);
+            const material = new THREE.MeshBasicMaterial({
+                color: 0xff3300,      // Matching corona color
+                transparent: true,
+                opacity: opacity,
+                side: THREE.BackSide,
+                blending: THREE.AdditiveBlending
+            });
+            return new THREE.Mesh(geometry, material);
+        };
+
+        // Add multiple corona layers with different sizes and opacities
+        const corona1 = createCorona(16, 0.3);
+        const corona2 = createCorona(17, 0.2);
+        const corona3 = createCorona(18, 0.1);
+        sun.add(corona1);
+        sun.add(corona2);
+        sun.add(corona3);
+
+        // Adjusted sun lights for smoother falloff
+        const sunLight = new THREE.PointLight(0xff4400, 20, 300, 1);  // Increased range from 200 to 300
+        sunLight.position.copy(sun.position);
+        scene.add(sunLight);
+
+        const sunLight2 = new THREE.PointLight(0xff2200, 10, 250, 1); // Increased range from 150 to 250
+        sunLight2.position.copy(sun.position);
+        scene.add(sunLight2);
+
+        const sunLight3 = new THREE.PointLight(0xff5500, 5, 200, 1);  // Increased range from 100 to 200
+        sunLight3.position.copy(sun.position);
+        scene.add(sunLight3);
+
+        // Ambient light for subtle space illumination
+        const ambientLight = new THREE.AmbientLight(0x111111); 
+        scene.add(ambientLight);
+
+        // Enhanced star field
+        function addStar() {
+            const geometry = new THREE.SphereGeometry(0.25, 24, 24);
+            const material = new THREE.MeshStandardMaterial({ 
+                color: 0xffffff,
+                emissive: 0xffffff,
+                emissiveIntensity: Math.random() * 0.5 + 0.5,
+                metalness: 0,
+                roughness: 1
+            });
+            const star = new THREE.Mesh(geometry, material);
+
+            const [x, y, z] = Array(3).fill().map(() => THREE.MathUtils.randFloatSpread(200));
+            star.position.set(x, y, z);
+            scene.add(star);
+        }
+        Array(500).fill().forEach(addStar); // More stars for space
+
+        // Create environment map for reflections with space theme
+        const cubeTextureLoader = new THREE.CubeTextureLoader();
+        const envMap = cubeTextureLoader.load([
+            'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/cube/MilkyWay/dark-s_px.jpg',
+            'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/cube/MilkyWay/dark-s_nx.jpg',
+            'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/cube/MilkyWay/dark-s_py.jpg',
+            'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/cube/MilkyWay/dark-s_ny.jpg',
+            'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/cube/MilkyWay/dark-s_pz.jpg',
+            'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/cube/MilkyWay/dark-s_nz.jpg'
+        ]);
+        scene.environment = envMap;  // Add environment lighting
+        scene.background = envMap;   // Use the same map for background
+
+        // Enhanced torus knot with mirror effect
+        const torusGeometry = new THREE.TorusKnotGeometry(10, 3, 100, 16);
+        const torusMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0xffffff,          // White base color
+            metalness: 1.0,           // Fully metallic
+            roughness: 0.0,           // Perfectly smooth
+            envMap: envMap,           // Environment map for reflections
+            envMapIntensity: 2.0,     // Increased reflection intensity
+            clearcoat: 1.0,           // Add clearcoat for extra shine
+            clearcoatRoughness: 0.0,  // Perfect clearcoat smoothness
+            reflectivity: 1.0,        // Maximum reflectivity
+            normalMap: new THREE.TextureLoader().load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/water/Water_1_M_Normal.jpg'),
+            normalScale: new THREE.Vector2(0.05, 0.05)  // Very subtle normal mapping
+        });
+
+        const torusKnot = new THREE.Mesh(torusGeometry, torusMaterial);
+        scene.add(torusKnot);
+
+        camera.position.z = 50;
+
+        // {{ edit_2: Updated Renderer Settings }}
+        renderer.physicallyCorrectLights = true;
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.toneMapping = THREE.ReinhardToneMapping;
+        renderer.toneMappingExposure = 1.5;
+
+        // Initialize post-processing
+        const composer = new THREE.EffectComposer(renderer);
+        const renderPass = new THREE.RenderPass(scene, camera);
+        composer.addPass(renderPass);
+        
+        // FXAA Pass for Anti-Aliasing
+        const fxaaPass = new THREE.ShaderPass(THREE.FXAAShader);
+        fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
+        composer.addPass(fxaaPass);
+        
+        // Adjusted bloom settings for smoother glow
+        const bloomPass = new THREE.UnrealBloomPass(
+            new THREE.Vector2(window.innerWidth, window.innerHeight),
+            1.5,    // Reduced strength
+            0.8,    // Increased radius for softer edges
+            0.3     // Adjusted threshold
+        );
+        
+        bloomPass.threshold = 0.2;     // Increased threshold slightly
+        bloomPass.strength = 2.0;      // Reduced strength
+        bloomPass.radius = 0.8;        // Increased radius for softer glow
+        composer.addPass(bloomPass);
+
+        // Adjust renderer tone mapping
+        renderer.toneMappingExposure = 1.8;  // Increased exposure
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+            
+            // Update FXAA resolution
+            fxaaPass.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
+        });
+
+        // Add spin speed variables
+        let isSpinning = false;
+        let spinSpeed = { x: 0.005, y: 0.0025 };
+        const normalSpeed = { x: 0.005, y: 0.0025 };
+        const fastSpeed = { x: 0.3, y: 0.15 };
+        const slowDownFactor = 0.98;
+
+        // Add Buddhist quotes
+        const buddhistQuotes = [
+            "The mind is everything. What you think, you become.",
+            "Peace comes from within. Do not seek it without.",
+            "The only real failure in life is not to be true to the best one knows.",
+            "Do not dwell in the past, do not dream of the future, concentrate the mind on the present moment.",
+            "Three things cannot be long hidden: the sun, the moon, and the truth.",
+            "The root of suffering is attachment.",
+            "In the end, these things matter most: How well did you love? How fully did you live? How deeply did you let go?",
+            "No one saves us but ourselves. No one can and no one may. We ourselves must walk the path."
+        ];
+
+        // Add quote display div with bottom positioning
+        const quoteDiv = document.createElement('div');
+        quoteDiv.style.position = 'fixed';
+        quoteDiv.style.bottom = '50px';  // Positioned at the bottom
+        quoteDiv.style.left = '50%';
+        quoteDiv.style.transform = 'translateX(-50%)';  // Center horizontally
+        quoteDiv.style.color = 'white';
+        quoteDiv.style.fontSize = '24px';
+        quoteDiv.style.fontFamily = 'Arial, sans-serif';
+        quoteDiv.style.textAlign = 'center';
+        quoteDiv.style.maxWidth = '800px';  // Increased for better text flow
+        quoteDiv.style.padding = '20px';
+        quoteDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+        quoteDiv.style.borderRadius = '10px';
+        quoteDiv.style.opacity = '0';
+        quoteDiv.style.transition = 'opacity 0.5s ease-in-out';
+        quoteDiv.style.pointerEvents = 'none';  // Prevent quote from blocking clicks
+        quoteDiv.style.zIndex = '1000';  // Ensure it's above other elements
+        document.body.appendChild(quoteDiv);
+
+        let canClick = true;  // Flag to control click availability
+        let currentQuoteIndex = -1;  // Track which quote to show next
+
+        // Raycaster for mouse interaction
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        // Add Orbit Selector Event Listeners
+        document.querySelectorAll('#orbitDropdown .dropdown-content a').forEach(item => {
+            item.addEventListener('click', (event) => {
+                event.preventDefault();
+                const selectedOrbit = event.target.getAttribute('data-orbit');
+                orbitType = selectedOrbit;
+                console.log('Orbit type changed to:', orbitType); // Debug log
+
+                // Update button text to show selected orbit
+                document.getElementById('orbitButton').textContent = 
+                    selectedOrbit.charAt(0).toUpperCase() + selectedOrbit.slice(1) + ' Orbit';
+
+                // Close the dropdown after selection
+                document.getElementById('orbitDropdown').classList.remove('active');
+            });
+        });
+
+        // Modify click event listener for spinning and quote display
+        window.addEventListener('click', (event) => {
+            if (!canClick) return;  // If we can't click, return early
+
+            // Calculate mouse position in normalized device coordinates
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            // Update the picking ray with the camera and mouse position
+            raycaster.setFromCamera(mouse, camera);
+
+            // Calculate objects intersecting the picking ray
+            const intersects = raycaster.intersectObject(torusKnot);
+
+            if (intersects.length > 0) {
+                // Clicked the torus knot - start fast spin
+                spinSpeed.x = fastSpeed.x;
+                spinSpeed.y = fastSpeed.y;
+                isSpinning = true;
+
+                // Show next quote
+                currentQuoteIndex = (currentQuoteIndex + 1) % buddhistQuotes.length;
+                quoteDiv.textContent = buddhistQuotes[currentQuoteIndex];
+                quoteDiv.style.opacity = '1';
+                
+                // Disable clicking temporarily
+                canClick = false;
+
+                // Hide quote and re-enable clicking after 3 seconds
+                setTimeout(() => {
+                    quoteDiv.style.opacity = '0';
+                    setTimeout(() => {
+                        canClick = true;
+                    }, 500);  // Wait for fade out to complete
+                }, 3000);
+            }
+        });
+
+        // Add selector functionality for sun orbit
+        let orbitType = 'stop'; // Current orbit type
+
+        // Orbit Parameters
+        const orbitParams = {
+            circular: { radius: 60, speed: 0.01 },        // Increased radius from 30 to 60
+            elliptical: { radiusX: 70, radiusZ: 40, speed: 0.008 }, // Increased from 35/20 to 70/40
+            spiral: { radius: 60, speed: 0.005, heightStep: 0.05 }  // Increased radius from 30 to 60
+        };
+
+        // Add Solar Plasma effect
+        const particleCount = 2000;
+        const plasmaGeometry = new THREE.BufferGeometry();
+        const plasmaPositions = new Float32Array(particleCount * 3);
+        const plasmaSpeeds = new Float32Array(particleCount);
+        const plasmaScales = new Float32Array(particleCount);
+
+        // Initialize plasma particles
+        for(let i = 0; i < particleCount; i++) {
+            const i3 = i * 3;
+            const angle = Math.random() * Math.PI * 2;
+            const radius = 15 + Math.random() * 3; // Start from sun's surface
+            
+            plasmaPositions[i3] = Math.cos(angle) * radius;
+            plasmaPositions[i3 + 1] = (Math.random() - 0.5) * radius;
+            plasmaPositions[i3 + 2] = Math.sin(angle) * radius;
+            
+            plasmaSpeeds[i] = 0.1 + Math.random() * 0.2;
+            plasmaScales[i] = 0.5 + Math.random() * 1.5;
+        }
+
+        plasmaGeometry.setAttribute('position', new THREE.BufferAttribute(plasmaPositions, 3));
+        plasmaGeometry.setAttribute('speed', new THREE.BufferAttribute(plasmaSpeeds, 1));
+        plasmaGeometry.setAttribute('scale', new THREE.BufferAttribute(plasmaScales, 1));
+
+        // Custom shader material for plasma effect
+        const plasmaShaderMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                time: { value: 0 },
+                color: { value: new THREE.Color(0xff3300) }
+            },
+            vertexShader: `
+                attribute float speed;
+                attribute float scale;
+                uniform float time;
+                
+                varying float vAlpha;
+                
+                void main() {
+                    vec3 pos = position;
+                    float t = time * speed;
+                    
+                    // Spiral outward motion
+                    float angle = t * 2.0;
+                    float radius = length(pos.xz) + t * 2.0;
+                    pos.x = cos(angle) * radius;
+                    pos.z = sin(angle) * radius;
+                    
+                    // Vertical oscillation
+                    pos.y += sin(t * 3.0) * 2.0;
+                    
+                    // Fade out based on distance
+                    vAlpha = 1.0 - min(1.0, t / 3.0);
+                    
+                    vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+                    gl_Position = projectionMatrix * mvPosition;
+                    gl_PointSize = scale * (50.0 / -mvPosition.z) * vAlpha;
+                }
+            `,
+            fragmentShader: `
+                uniform vec3 color;
+                varying float vAlpha;
+                
+                void main() {
+                    vec2 center = gl_PointCoord - vec2(0.5);
+                    float dist = length(center);
+                    float alpha = smoothstep(0.5, 0.2, dist) * vAlpha;
+                    
+                    gl_FragColor = vec4(color, alpha);
+                }
+            `,
+            transparent: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        });
+
+        const plasmaParticles = new THREE.Points(plasmaGeometry, plasmaShaderMaterial);
+        sun.add(plasmaParticles);
+
+        // THEN add the animation functions
+        function animateSun() {
+            // Get current time once
+            const currentTime = Date.now() * 0.001;
+            
+            // Rotate the sun
+            sun.rotation.y += 0.001;
+            
+            // Pulse the coronas
+            const scale1 = 1.0 + Math.sin(currentTime) * 0.02;
+            const scale2 = 1.0 + Math.sin(currentTime + 0.5) * 0.02;
+            const scale3 = 1.0 + Math.sin(currentTime + 1.0) * 0.02;
+            
+            corona1.scale.set(scale1, scale1, scale1);
+            corona2.scale.set(scale2, scale2, scale2);
+            corona3.scale.set(scale3, scale3, scale3);
+
+            // Animate sun lights intensity
+            const intensity = 3.5 + Math.sin(currentTime * 2) * 0.5;
+            sunLight.intensity = intensity;
+            sunLight2.intensity = intensity * 0.5;
+            sunLight3.intensity = intensity * 0.25;
+
+            // Update plasma effect
+            plasmaShaderMaterial.uniforms.time.value = currentTime;
+
+            // Regenerate particles that have faded out
+            const positions = plasmaGeometry.attributes.position.array;
+            const speeds = plasmaGeometry.attributes.speed.array;
+            
+            for(let i = 0; i < particleCount; i++) {
+                const i3 = i * 3;
+                const t = currentTime * speeds[i];
+                
+                // Reset particles that have moved too far
+                if(t % 3.0 < 0.1) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const radius = 15 + Math.random() * 3;
+                    
+                    positions[i3] = Math.cos(angle) * radius;
+                    positions[i3 + 1] = (Math.random() - 0.5) * radius;
+                    positions[i3 + 2] = Math.sin(angle) * radius;
+                }
+            }
+            
+            plasmaGeometry.attributes.position.needsUpdate = true;
+        }
+
+        // Add orbit angle variable
+        let orbitAngle = 0;
+
+        // Update Animate Function to Handle Sun Orbit
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Add sun animation
+            animateSun();
+
+            // Handle Sun Orbit based on orbitType
+            if (orbitType !== 'stop') {
+                orbitAngle += orbitParams[orbitType].speed;
+                switch (orbitType) {
+                    case 'circular':
+                        sun.position.x = orbitParams.circular.radius * Math.cos(orbitAngle);
+                        sun.position.z = orbitParams.circular.radius * Math.sin(orbitAngle);
+                        sun.position.y = 50; // Maintain original Y position
+                        break;
+                    case 'elliptical':
+                        sun.position.x = orbitParams.elliptical.radiusX * Math.cos(orbitAngle);
+                        sun.position.z = orbitParams.elliptical.radiusZ * Math.sin(orbitAngle);
+                        sun.position.y = 50; // Maintain original Y position
+                        break;
+                    case 'spiral':
+                        sun.position.x = orbitParams.spiral.radius * Math.cos(orbitAngle);
+                        sun.position.z = orbitParams.spiral.radius * Math.sin(orbitAngle);
+                        sun.position.y += orbitParams.spiral.heightStep; // Ascend or descend
+                        // Reset Y position to prevent it from drifting infinitely
+                        if (sun.position.y > 100 || sun.position.y < 0) {
+                            orbitParams.spiral.heightStep *= -1;
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            // Rotate torus knot with current spin speed
+            torusKnot.rotation.x += spinSpeed.x;
+            torusKnot.rotation.y += spinSpeed.y;
+
+            // If spinning fast, gradually slow down
+            if (isSpinning) {
+                spinSpeed.x *= slowDownFactor;
+                spinSpeed.y *= slowDownFactor;
+
+                // If speed is close to normal, reset to normal
+                if (spinSpeed.x <= normalSpeed.x * 1.1) {
+                    spinSpeed.x = normalSpeed.x;
+                    spinSpeed.y = normalSpeed.y;
+                    isSpinning = false;
+                }
+            }
+
+            // Animate normal map for fluid effect
+            torusMaterial.normalMap.offset.x += 0.001;
+            torusMaterial.normalMap.offset.y += 0.001;
+
+            // Make stars twinkle
+            scene.children.forEach(child => {
+                if (child.geometry && child.geometry.type === 'SphereGeometry' && child !== sun && child !== torusKnot) {
+                    child.material.emissiveIntensity = Math.random() * 0.5 + 0.5;
+                }
+            });
+
+            controls.update();
+            composer.render();
+
+            // Update light positions to follow sun
+            sunLight.position.copy(sun.position);
+            sunLight2.position.copy(sun.position);
+            sunLight3.position.copy(sun.position);
+        }
+        animate();
+
+        // Add dropdown menu functionality
+        document.getElementById('orbitButton').addEventListener('click', function() {
+            document.getElementById('orbitDropdown').classList.toggle('active');
+        });
+
+        // Close dropdown when clicking outside
+        window.addEventListener('click', function(e) {
+            if (!document.getElementById('orbitDropdown').contains(e.target)) {
+                document.getElementById('orbitDropdown').classList.remove('active');
+            }
+        });
+
+        // Adjust bloom settings for stronger effect
+        bloomPass.threshold = 0.1;     // Lower threshold to catch more bright areas
+        bloomPass.strength = 3.0;      // Increased strength
+        bloomPass.radius = 0.7;
+
+        // Increase renderer exposure
+        renderer.toneMappingExposure = 2.0;  // Increased exposure
+    </script>
+</body>
+</html> 
